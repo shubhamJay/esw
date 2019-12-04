@@ -14,7 +14,7 @@ script {
     publishEvent(SystemEvent("tcs", "test.event"))
 
 
-    scheduleOnce(utcTimeNow()) {
+    scheduleOnceAt(utcTimeNow()) {
         //  throws EventServerNotAvailable exception
         //  1. which will call exception handler
         publishEvent(SystemEvent("tcs", "test.event"))
@@ -41,7 +41,7 @@ script {
 
 
     onSetup("command-2") {
-        scheduleOnce(utcTimeNow()) {
+        scheduleOnceAt(utcTimeNow()) {
             // throws EventServerNotAvailable exception
             // 1. which will call exception handler
             publishEvent(SystemEvent("tcs", "test.event"))

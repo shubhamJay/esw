@@ -25,13 +25,13 @@ script {
     }
 
     onSetup("time-service-dsl") {
-        val offset = utcTimeAfter(2.seconds).offsetFromNow()
+        val period = 2.seconds
 
-        schedulePeriodically(utcTimeAfter(5.seconds), offset) {
+        schedulePeriodicallyFromNow(5.seconds, period) {
             publishEvent(SystemEvent("lgsf.test", "publish.success"))
         }
 
-        scheduleOnce(taiTimeNow()) {
+        scheduleOnceAt(taiTimeNow()) {
             publishEvent(SystemEvent("lgsf.test", "publish.success"))
         }
     }

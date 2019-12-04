@@ -23,7 +23,7 @@ script {
         val probeCommand = Setup(prefix, "scheduledOffset", command.obsId)
             .madd(probeOffsetXParam, probeOffsetYParam)
 
-        scheduleOnce(scheduledTime(0)) {
+        scheduleOnceAt(scheduledTime(0)) {
             val probeAssembly = Assembly("probeAssembly")
             val response = probeAssembly.submitAndWait(probeCommand)
             if(response is CommandResponse.Error){

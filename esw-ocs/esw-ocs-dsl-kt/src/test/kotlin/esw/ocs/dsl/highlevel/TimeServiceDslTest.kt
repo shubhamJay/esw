@@ -41,7 +41,7 @@ class TimeServiceDslTest : TimeServiceDsl {
     @Test
     fun `TimeServiceDsl should scheduleOnce should delegate to timeServiceScheduler#scheduleOnce | ESW-122`() = runBlocking{
         every { scheduler.scheduleOnce(startTime, any<Runnable>()) }.answers { cancellable }
-        scheduleOnce(startTime, mockk()) shouldBe cancellable
+        scheduleOnceAt(startTime, mockk()) shouldBe cancellable
         verify { scheduler.scheduleOnce(startTime, any<Runnable>()) }
     }
 
@@ -51,7 +51,7 @@ class TimeServiceDslTest : TimeServiceDsl {
             scheduler.schedulePeriodically(startTime, jDuration, any<Runnable>())
         }.answers { cancellable }
 
-        schedulePeriodically(startTime, duration, mockk()) shouldBe cancellable
+        schedulePeriodicallyStartingAt(startTime, duration, mockk()) shouldBe cancellable
         verify { scheduler.schedulePeriodically(startTime, jDuration, any<Runnable>()) }
     }
 
