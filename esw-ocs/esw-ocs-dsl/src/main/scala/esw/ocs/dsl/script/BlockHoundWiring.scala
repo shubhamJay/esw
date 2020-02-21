@@ -16,6 +16,10 @@ object BlockHoundWiring {
         "scala.Console$",
         "println"
       )
+      builder.allowBlockingCallsInside(
+        "java.io.PrintStream",
+        "println"
+      )
     })
   }
 }
