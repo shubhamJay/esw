@@ -25,7 +25,7 @@ import esw.http.core.wiring.{ActorRuntime, CswWiring, HttpService, Settings}
 import esw.ocs.api.codecs.SequencerHttpCodecs
 import esw.ocs.api.protocol.ScriptError
 import esw.ocs.handler.{SequencerPostHandler, SequencerWebsocketHandler}
-import esw.ocs.impl.blockhound.BlockHoundWiring
+import esw.ocs.impl.blockhound.{ActorsIntegration, BlockHoundWiring}
 import esw.ocs.impl.core._
 import esw.ocs.impl.internal._
 import esw.ocs.impl.messages.SequencerMessages.Shutdown
@@ -50,6 +50,7 @@ private[ocs] class SequencerWiring(
   import sequencerConfig._
 
   lazy val actorSystem: ActorSystem[SpawnProtocol.Command] = ActorSystemFactory.remote(SpawnProtocol(), "sequencer-system")
+  BlockHoundWiring.addIntegration(new ActorsIntegration(actorSystem))
 
   implicit lazy val timeout: Timeout = Timeouts.DefaultTimeout
   lazy val cswWiring: CswWiring      = CswWiring.make(actorSystem)
@@ -130,7 +131,7 @@ private[ocs] class SequencerWiring(
         val loc          = locationServiceUtil.register(registration).block
         logger.info(s"Successfully started Sequencer for subsystem: $subsystem with observing mode: $observingMode")
         if (enableThreadMonitoring) {
-          logger.info(s"Thread Monitoring enabled for ${BlockHoundWiring.integrations}")
+          println(s"Thread Monitoring enabled for ${BlockHoundWiring.integrations}")
           BlockHoundWiring.install()
         }
         loc

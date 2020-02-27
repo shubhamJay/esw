@@ -243,8 +243,11 @@ class SequencerBehavior(
       state: SequencerState[T],
       data: SequencerData
   ): Behavior[SequencerMsg] = message match {
-    case Shutdown(replyTo)                        => shutdown(data, replyTo)
-    case GetSequence(replyTo)                     => replyTo ! data.stepList; Behaviors.same
+    case Shutdown(replyTo) => shutdown(data, replyTo)
+    case GetSequence(replyTo) => {
+      println(s"Thread name ${Thread.currentThread().getName}")
+      replyTo ! data.stepList; Behaviors.same
+    }
     case GetSequencerState(replyTo)               => replyTo ! state; Behaviors.same
     case DiagnosticMode(startTime, hint, replyTo) => goToDiagnosticMode(startTime, hint, replyTo)
     case OperationsMode(replyTo)                  => goToOperationsMode(replyTo)
