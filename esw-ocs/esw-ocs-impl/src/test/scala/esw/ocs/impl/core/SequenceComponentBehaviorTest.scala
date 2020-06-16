@@ -19,8 +19,10 @@ import csw.prefix.models.Subsystem.{ESW, IRIS, TCS}
 import esw.commons.BaseTestSuite
 import esw.ocs.api.actor.messages.SequenceComponentMsg
 import esw.ocs.api.actor.messages.SequenceComponentMsg._
+import esw.ocs.api.models.SequenceComponentState.{Idle, Running}
+import esw.ocs.api.protocol.ScriptError
 import esw.ocs.api.protocol.ScriptError.LoadingScriptFailed
-import esw.ocs.api.protocol.{GetStatusResponse, ScriptError, ScriptResponse}
+import esw.ocs.api.protocol.SequenceComponentResponse._
 import esw.ocs.impl.internal.{SequencerServer, SequencerServerFactory}
 
 import scala.concurrent.duration.DurationLong
@@ -64,8 +66,8 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
     "load/unload script and get appropriate status | ESW-103, ESW-255" in {
       val (sequenceComponentRef, seqCompLocation) = spawnSequenceComponent()
 
-      val loadScriptResponseProbe = TestProbe[ScriptResponse]()
-      val getStatusProbe          = TestProbe[GetStatusResponse]()
+      val loadScriptResponseProbe = TestProbe[ScriptResponseOrUnhandled]()
+      val getStatusProbe          = TestProbe[GetStatusResponseOrUnhandled]()
       val subsystem               = ESW
       val observingMode           = "darknight"
       val prefix                  = Prefix(s"$subsystem.$observingMode")
@@ -78,7 +80,9 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
       sequenceComponentRef ! LoadScript(subsystem, observingMode, loadScriptResponseProbe.ref)
 
       //Assert if script loaded and returns AkkaLocation of sequencer
-      val loadScriptLocationResponse: AkkaLocation = loadScriptResponseProbe.receiveMessage().response.rightValue
+      val scriptResponseOrUnhandled = loadScriptResponseProbe.receiveMessage()
+      scriptResponseOrUnhandled shouldBe a[ScriptResponse]
+      val loadScriptLocationResponse: AkkaLocation = scriptResponseOrUnhandled.asInstanceOf[ScriptResponse].response.rightValue
 
       loadScriptLocationResponse.connection shouldEqual akkaConnection
 
@@ -89,16 +93,18 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
       sequenceComponentRef ! GetStatus(getStatusProbe.ref)
 
       //Assert if get status returns AkkaLocation of sequencer currently running
-      val getStatusLocationResponse: Location = getStatusProbe.receiveMessage(5.seconds).response.get
+      val getStatusResponseOrUnhandled = getStatusProbe.receiveMessage(5.seconds)
+      getStatusResponseOrUnhandled shouldBe a[GetStatusResponse]
+      val getStatusLocationResponse: Location = getStatusResponseOrUnhandled.asInstanceOf[GetStatusResponse].response.get
       getStatusLocationResponse.connection shouldEqual AkkaConnection(
         ComponentId(prefix, ComponentType.Sequencer)
       )
 
       //UnloadScript
-      val unloadScriptProbe = TestProbe[Done]()
+      val unloadScriptProbe = TestProbe[OkOrUnhandled]()
       sequenceComponentRef ! UnloadScript(unloadScriptProbe.ref)
 
-      unloadScriptProbe.expectMessageType[Done.type]
+      unloadScriptProbe.expectMessageType[Ok.type]
 
       //assert if GetStatus returns None after unloading sequencer script
       sequenceComponentRef ! GetStatus(getStatusProbe.ref)
@@ -108,7 +114,7 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
     "load script and give ScriptError if sequencer is already running | ESW-103" in {
       val (sequenceComponentRef, seqCompLocation) = spawnSequenceComponent()
 
-      val loadScriptResponseProbe = TestProbe[ScriptResponse]()
+      val loadScriptResponseProbe = TestProbe[ScriptResponseOrUnhandled]()
       val subsystem               = IRIS
       val observingMode           = "darknight"
       val prefix                  = Prefix(s"$subsystem.$observingMode")
@@ -121,13 +127,14 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
       sequenceComponentRef ! LoadScript(subsystem, observingMode, loadScriptResponseProbe.ref)
 
       //Assert if script loaded and returns AkkaLocation of sequencer
-      val loadScriptLocationResponse: AkkaLocation = loadScriptResponseProbe.receiveMessage().response.rightValue
+      val response = loadScriptResponseProbe.receiveMessage()
+      response shouldBe a[ScriptResponse]
+      val loadScriptLocationResponse: AkkaLocation = response.asInstanceOf[ScriptResponse].response.rightValue
       loadScriptLocationResponse.connection shouldEqual akkaConnection
 
       sequenceComponentRef ! LoadScript(TCS, "darknight", loadScriptResponseProbe.ref)
-      loadScriptResponseProbe.receiveMessage().response.leftValue shouldBe ScriptError.SequenceComponentNotIdle(
-        Prefix(subsystem, observingMode)
-      )
+      val response1 = loadScriptResponseProbe.receiveMessage()
+      response1 should ===(Unhandled(Running, "LoadScript"))
 
       // verify that these calls are made exactly once as second time load script will return SequenceComponentNotIdle error
       verify(sequencerServerFactory).make(subsystem, observingMode, seqCompLocation)
@@ -137,7 +144,7 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
     "load script and give ScriptError if exception on initialization | ESW-243" in {
       val (sequenceComponentRef, seqCompLocation) = spawnSequenceComponent()
 
-      val loadScriptResponseProbe = TestProbe[ScriptResponse]()
+      val loadScriptResponseProbe = TestProbe[ScriptResponseOrUnhandled]()
       val subsystem               = ESW
       val observingMode           = "initException"
       val loadingScriptFailed     = LoadingScriptFailed("Script initialization failed with : initialisation failed")
@@ -148,14 +155,18 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
       //LoadScript
       sequenceComponentRef ! LoadScript(subsystem, observingMode, loadScriptResponseProbe.ref)
 
-      loadScriptResponseProbe.receiveMessage().response.leftValue shouldBe loadingScriptFailed
+      val response = loadScriptResponseProbe.receiveMessage()
+      response shouldBe a[ScriptResponse]
+      val loadScriptLocationResponse: ScriptError = response.asInstanceOf[ScriptResponse].response.leftValue
+      loadScriptLocationResponse shouldBe loadingScriptFailed
+
     }
 
     "unload script and return Done if sequence component is not running any sequencer | ESW-103" in {
       val (sequenceComponentRef, _) = spawnSequenceComponent()
 
-      val unloadScriptResponseProbe = TestProbe[Done]()
-      val getStatusProbe            = TestProbe[GetStatusResponse]()
+      val unloadScriptResponseProbe = TestProbe[OkOrUnhandled]()
+      val getStatusProbe            = TestProbe[GetStatusResponseOrUnhandled]()
 
       //assert if GetStatus returns None after unloading sequencer script
       sequenceComponentRef ! GetStatus(getStatusProbe.ref)
@@ -164,8 +175,8 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
       //UnloadScript
       sequenceComponentRef ! UnloadScript(unloadScriptResponseProbe.ref)
 
-      //Assert if UnloadScript returns Done
-      unloadScriptResponseProbe.expectMessage(Done)
+      //Assert if UnloadScript returns Ok
+      unloadScriptResponseProbe.expectMessage(Ok)
     }
 
     "restart sequencer if sequence component is in running state (sequencer can be in any state) | ESW-141" in {
@@ -174,8 +185,8 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
       val subsystem               = ESW
       val observingMode           = "darknight"
       val prefix                  = Prefix(s"$subsystem.$observingMode")
-      val loadScriptResponseProbe = TestProbe[ScriptResponse]()
-      val restartResponseProbe    = TestProbe[ScriptResponse]()
+      val loadScriptResponseProbe = TestProbe[ScriptResponseOrUnhandled]()
+      val restartResponseProbe    = TestProbe[ScriptResponseOrUnhandled]()
       val akkaConnection          = AkkaConnection(ComponentId(prefix, ComponentType.Sequencer))
 
       when(sequencerServerFactory.make(subsystem, observingMode, seqCompLocation)).thenReturn(sequencerServer)
@@ -188,15 +199,17 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
       sequenceComponentRef ! LoadScript(subsystem, observingMode, loadScriptResponseProbe.ref)
       val message = loadScriptResponseProbe.receiveMessage()
       message shouldBe a[ScriptResponse]
-      message.response.isRight shouldBe true
-      val initialLocation = message.response.rightValue
+      message.asInstanceOf[ScriptResponse].response.isRight shouldBe true
+      val initialLocation = message.asInstanceOf[ScriptResponse].response.rightValue
 
       when(sequencerServer.shutDown()).thenReturn(Done)
 
       //Restart sequencer and assert if it returns new AkkaLocation of sequencer
       sequenceComponentRef ! Restart(restartResponseProbe.ref)
 
-      val restartLocationResponse: AkkaLocation = restartResponseProbe.receiveMessage().response.rightValue
+      val message1 = restartResponseProbe.receiveMessage()
+      message1 shouldBe a[ScriptResponse]
+      val restartLocationResponse: AkkaLocation = message1.asInstanceOf[ScriptResponse].response.rightValue
       restartLocationResponse.connection shouldEqual AkkaConnection(
         ComponentId(prefix, ComponentType.Sequencer)
       )
@@ -206,9 +219,9 @@ class SequenceComponentBehaviorTest extends BaseTestSuite {
     "restart should fail if sequence component is in idle state | ESW-141" in {
       val (sequenceComponentRef, _) = spawnSequenceComponent()
 
-      val restartResponseProbe = TestProbe[ScriptResponse]()
+      val restartResponseProbe = TestProbe[ScriptResponseOrUnhandled]()
       sequenceComponentRef ! Restart(restartResponseProbe.ref)
-      restartResponseProbe.expectMessage(ScriptResponse(Left(ScriptError.RestartNotSupportedInIdle)))
+      restartResponseProbe.expectMessage(Unhandled(Idle, "Restart"))
     }
   }
 }
