@@ -6,7 +6,7 @@ import csw.aas.http.SecurityDirectives
 import esw.sm.api.SequenceManagerApi
 import esw.sm.api.codecs.SequenceManagerHttpCodec._
 import esw.sm.api.protocol.SequenceManagerPostRequest
-import esw.sm.api.protocol.SequenceManagerPostRequest._
+import esw.sm.api.protocol.SequenceManagerPostRequest.{GetAllAgentStatus, _}
 import esw.sm.auth.EswUserRolePolicy
 import msocket.impl.post.{HttpPostHandler, ServerHttpCodecs}
 
@@ -18,6 +18,7 @@ class SequenceManagerPostHandler(sequenceManager: SequenceManagerApi, securityDi
   override def handle(request: SequenceManagerPostRequest): Route =
     request match {
       case GetRunningObsModes                    => complete(getRunningObsModes)
+      case GetAllAgentStatus                     => complete(getAllAgentStatus)
       case Configure(obsMode)                    => sPost(complete(configure(obsMode)))
       case StartSequencer(subsystem, obsMode)    => sPost(complete(startSequencer(subsystem, obsMode)))
       case RestartSequencer(subsystem, obsMode)  => sPost(complete(restartSequencer(subsystem, obsMode)))

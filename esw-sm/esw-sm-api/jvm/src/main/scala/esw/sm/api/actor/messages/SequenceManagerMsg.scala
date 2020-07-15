@@ -35,9 +35,10 @@ object SequenceManagerMsg {
       replyTo: ActorRef[ShutdownSequenceComponentResponse]
   ) extends SequenceManagerIdleMsg
 
-  sealed trait CommonMessage                                                   extends SequenceManagerRemoteMsg
-  case class GetRunningObsModes(replyTo: ActorRef[GetRunningObsModesResponse]) extends CommonMessage
-  case class GetSequenceManagerState(replyTo: ActorRef[SequenceManagerState])  extends CommonMessage
+  sealed trait CommonMessage                                                          extends SequenceManagerRemoteMsg
+  case class GetRunningObsModes(replyTo: ActorRef[GetRunningObsModesResponse])        extends CommonMessage
+  case class GetSequenceManagerState(replyTo: ActorRef[SequenceManagerState])         extends CommonMessage
+  case class GetAllAgentComponentStatus(replyTo: ActorRef[GetAllAgentStatusResponse]) extends CommonMessage
 
   private[sm] case class ProcessingComplete[T <: SmResponse](res: T) extends SequenceManagerMsg
 }

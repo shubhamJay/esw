@@ -88,3 +88,14 @@ sealed trait AgentError extends SpawnSequenceComponentResponse.Failure
 object AgentError {
   case class SpawnSequenceComponentFailed(msg: String) extends AgentError
 }
+
+sealed trait GetAllAgentStatusResponse extends SmResponse
+
+object GetAllAgentStatusResponse {
+  sealed trait Success                                                                                    extends GetAllAgentStatusResponse
+  case class SequenceComponentStatus(SeqCompId: ComponentId, sequencerCompId: Option[ComponentId])        extends Success
+  case class GetAgentComponentStatus(agent: ComponentId, componentsStatus: List[SequenceComponentStatus]) extends Success
+  case class GetAllAgentStatus(agentsStatus: List[GetAgentComponentStatus])                               extends Success
+
+  case object Failure extends SmFailure with GetAllAgentStatusResponse
+}
