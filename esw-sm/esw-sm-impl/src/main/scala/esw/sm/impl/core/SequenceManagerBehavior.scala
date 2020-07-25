@@ -43,7 +43,10 @@ class SequenceManagerBehavior(
 
   private def idle(self: SelfRef): SMBehavior =
     receive[SequenceManagerIdleMsg](Idle) {
-      case Configure(obsMode, replyTo) => configure(obsMode, self, replyTo)
+      case Configure(obsMode, replyTo) => {
+        println("real configure")
+        configure(obsMode, self, replyTo)
+      }
 
       // Shutdown sequencers
       case ShutdownSequencer(subsystem, obsMode, replyTo) =>

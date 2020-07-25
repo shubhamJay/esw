@@ -1,15 +1,15 @@
 package esw.sm.api.actor.client
 
+import akka.actor.testkit.typed.scaladsl.{ActorTestKit, TestProbe}
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, SpawnProtocol}
+import akka.actor.typed.{ActorRef, ActorSystem, SpawnProtocol}
 import csw.location.api.extensions.ActorExtension._
-import csw.location.api.models.ComponentType.Service
-import csw.location.api.models.Connection.AkkaConnection
-import csw.location.api.models.{AkkaLocation, ComponentId, ComponentType}
+import csw.location.api.models.{ComponentId, ComponentType}
 import csw.prefix.models.Prefix
 import csw.prefix.models.Subsystem.ESW
 import esw.ocs.api.models.ObsMode
 import esw.sm.api.actor.messages.SequenceManagerMsg
+import esw.sm.api.actor.messages.SequenceManagerMsg.Configure
 import esw.sm.api.models.AgentStatusResponses.AgentSeqCompsStatus
 import esw.sm.api.models.SequenceManagerState.Idle
 import esw.sm.api.protocol._
@@ -31,7 +31,10 @@ class SequenceManagerImplTest extends BaseTestSuite {
 
   private val mockedBehavior: Behaviors.Receive[SequenceManagerMsg] = Behaviors.receiveMessage[SequenceManagerMsg] { msg =>
     msg match {
-      case SequenceManagerMsg.Configure(_, replyTo)            => replyTo ! configureResponse
+      case SequenceManagerMsg.Configure(_, replyTo) => {
+        println("mocked configure")
+        replyTo ! configureResponse
+      }
       case SequenceManagerMsg.GetRunningObsModes(replyTo)      => replyTo ! getRunningObsModesResponse
       case SequenceManagerMsg.GetSequenceManagerState(replyTo) => replyTo ! Idle
       case SequenceManagerMsg.StartSequencer(_, _, replyTo)    => replyTo ! startSequencerResponse
@@ -49,20 +52,25 @@ class SequenceManagerImplTest extends BaseTestSuite {
 
       case SequenceManagerMsg.Provision(replyTo)         => replyTo ! provisionResponse
       case SequenceManagerMsg.GetAllAgentStatus(replyTo) => replyTo ! getAgentStatusResponse
-      case SequenceManagerMsg.ProcessingComplete(_)      =>
     }
     Behaviors.same
   }
 
-  private val smRef           = system.systemActorOf(mockedBehavior, "sm")
-  private val location        = AkkaLocation(AkkaConnection(ComponentId(Prefix(ESW, "sequence_manager"), Service)), smRef.toURI)
-  private val sequenceManager = new SequenceManagerImpl(location)
+  private val testKit: ActorTestKit = ActorTestKit()
+
+  val probe: TestProbe[SequenceManagerMsg] = testKit.createTestProbe[SequenceManagerMsg]()
+  val smRef: ActorRef[SequenceManagerMsg]  = testKit.spawn(Behaviors.monitor(probe.ref, mockedBehavior))
+
+  private val sequenceManager = new SequenceManagerImpl(smRef)
   private val obsMode         = ObsMode("IRIS_DarkNight")
   private val seqCompPrefix   = Prefix(ESW, "primary")
 
   "SequenceManagerImpl" must {
     "configure" in {
-      sequenceManager.configure(obsMode).futureValue shouldBe configureResponse
+      val uri                = smRef.toURI
+      val configureResponseF = sequenceManager.configure(obsMode)
+      probe.expectMessageType[Configure]
+      configureResponseF.futureValue shouldBe configureResponse
     }
 
     "startSequencer" in {

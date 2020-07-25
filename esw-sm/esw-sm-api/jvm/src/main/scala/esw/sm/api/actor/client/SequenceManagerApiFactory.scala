@@ -3,8 +3,10 @@ package esw.sm.api.actor.client
 import akka.actor.typed.ActorSystem
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.Uri.Path
+import csw.location.api.extensions.URIExtension.RichURI
 import csw.location.api.models.{AkkaLocation, HttpLocation}
 import esw.sm.api.SequenceManagerApi
+import esw.sm.api.actor.messages.SequenceManagerMsg
 import esw.sm.api.client.SequenceManagerClient
 import esw.sm.api.codecs.SequenceManagerHttpCodec
 import esw.sm.api.protocol.SequenceManagerPostRequest
@@ -15,7 +17,7 @@ object SequenceManagerApiFactory {
 
   // todo: should this be exposed to all?
   def makeAkkaClient(akkaLocation: AkkaLocation)(implicit actorSystem: ActorSystem[_]): SequenceManagerApi =
-    new SequenceManagerImpl(akkaLocation)
+    new SequenceManagerImpl(akkaLocation.uri.toActorRef.unsafeUpcast[SequenceManagerMsg])
 
   def makeHttpClient(httpLocation: HttpLocation, tokenFactory: () => Option[String])(implicit
       actorSystem: ActorSystem[_]
