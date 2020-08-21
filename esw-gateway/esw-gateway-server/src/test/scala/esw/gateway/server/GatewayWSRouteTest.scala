@@ -41,7 +41,7 @@ class GatewayWSRouteTest extends BaseTestSuite with ScalatestRouteTest with Gate
 
   override def clientContentType: ContentType = ContentType.Json
 
-  private val cswCtxMocks = new CswWiringMocks()
+  private val cswCtxMocks = new CswTestMocks()
   import cswCtxMocks._
 
   private var wsClient: WSProbe                        = _

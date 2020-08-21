@@ -20,7 +20,7 @@ import esw.gateway.api.codecs.GatewayCodecs
 import esw.gateway.api.protocol.WebsocketRequest.{ComponentCommand, SequencerCommand, Subscribe}
 import esw.gateway.api.protocol._
 import esw.gateway.impl.EventImpl
-import esw.gateway.server.CswWiringMocks
+import esw.gateway.server.CswTestMocks
 import esw.gateway.server.handlers.GatewayWebsocketHandler
 import esw.ocs.api.protocol.SequencerWebsocketRequest
 import esw.testcommons.BaseTestSuite
@@ -39,7 +39,7 @@ import scala.util.Try
 
 class WebsocketMetricsTest extends BaseTestSuite with ScalatestRouteTest with GatewayCodecs with ClientHttpCodecs {
 
-  private val cswCtxMocks = new CswWiringMocks()
+  private val cswCtxMocks = new CswTestMocks()
   import cswCtxMocks._
 
   implicit val typedSystem: ActorSystem[_]             = system.toTyped
