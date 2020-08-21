@@ -12,8 +12,8 @@ import csw.prefix.models.Prefix
 import esw.gateway.api.{AlarmApi, EventApi, LoggingApi}
 import esw.gateway.impl.{AlarmImpl, EventImpl, LoggerCache, LoggingImpl}
 import esw.gateway.server.utils.Resolver
-import esw.http.core.wiring.CswWiring
 import esw.ocs.api.SequencerApi
+import esw.wiring.CswWiring
 import org.mockito.ArgumentMatchers.any
 import org.mockito.MockitoSugar._
 
