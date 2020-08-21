@@ -126,7 +126,6 @@ object Dependencies {
       Csw.`csw-commons`,
       Csw.`csw-network-utils`,
       Csw.`csw-location-client`,
-      Csw.`csw-aas-http`, // todo : can be removed
       Akka.`akka-actor-typed`,
       AkkaHttp.`akka-http`,
       AkkaHttp.`akka-http-cors`,
