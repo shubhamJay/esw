@@ -23,7 +23,7 @@ import scala.concurrent.duration.DurationLong
 import scala.concurrent.{Await, Future}
 
 //TODO Fix this, as failing on CI
-@Ignore
+
 class AdminImplTest extends AnyFunSuite with Matchers with BeforeAndAfterEach {
 
   var actorTestKit: ActorTestKit = _
