@@ -55,4 +55,4 @@ jobs:
           sudo ln -s $(which kotlinc) /usr/local/bin/kotlinc
 
       - name: Tests
-        run: sbt -Dakka.actor.serialize-messages=on -DenableCoverage=true -DgenerateStoryReport=true "esw-gateway-impl/testOnly esw.gateway.impl.AdminImplTest"
+        run: sbt -Dakka.actor.serialize-messages=on -DenableCoverage=true -DgenerateStoryReport=true "esw-gateway/test"
